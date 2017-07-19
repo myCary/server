@@ -16,17 +16,24 @@ return [
 	// Thus, both first-party and third-party code being used by
 	// your application should be included in this list.
 	'directory_list' => [
-		'build/.phan/stubs',
 		'3rdparty',
-		'lib/composer',
-		'themes',
-		'lib/',
 		'apps/',
+		'build/.phan/stubs',
 		'core/',
-		'ocs/',
+		'lib/',
+		'lib/composer',
 		'ocs-provider/',
+		'ocs/',
 		'settings/',
 		'tests/lib/Util/User',
+		'themes',
+	],
+	'file_list' => [
+		'index.php',
+		'public.php',
+		'remote.php',
+		'status.php',
+		'version.php',
 	],
 
 	// A directory list that defines files that will be excluded
@@ -40,55 +47,95 @@ return [
 	//       party code, directories containing that code
 	//       should be added to the `directory_list` as
 	//       to `exclude_analysis_directory_list`.
-	"exclude_analysis_directory_list" => [
+	'exclude_analysis_directory_list' => [
 		'3rdparty',
-		'lib/composer',
 		'apps/admin_audit/composer',
 		'apps/admin_audit/tests',
 		'apps/comments/composer',
 		'apps/comments/tests',
 		'apps/dav/composer',
+		'apps/dav/templates',
 		'apps/dav/tests',
 		'apps/encryption/composer',
+		'apps/encryption/templates/',
 		'apps/encryption/tests',
 		'apps/federatedfilesharing/composer',
+		'apps/federatedfilesharing/templates/',
 		'apps/federatedfilesharing/tests',
 		'apps/federation/composer',
+		'apps/federation/templates/',
 		'apps/federation/tests',
 		'apps/files/composer',
+		'apps/files/templates/',
 		'apps/files/tests',
 		'apps/files_external/3rdparty',
 		'apps/files_external/composer',
+		'apps/files_external/templates/',
 		'apps/files_external/tests',
 		'apps/files_sharing/composer',
+		'apps/files_sharing/templates/',
 		'apps/files_sharing/tests',
 		'apps/files_trashbin/composer',
+		'apps/files_trashbin/templates/',
 		'apps/files_trashbin/tests',
 		'apps/files_versions/composer',
 		'apps/files_versions/tests',
 		'apps/lookup_server_connector/composer',
 		'apps/lookup_server_connector/tests',
 		'apps/oauth2/composer',
+		'apps/oauth2/templates/',
 		'apps/oauth2/tests',
 		'apps/provisioning_api/composer',
 		'apps/provisioning_api/tests',
 		'apps/sharebymail/composer',
+		'apps/sharebymail/templates/',
 		'apps/sharebymail/tests',
 		'apps/systemtags/composer',
 		'apps/systemtags/tests',
 		'apps/testing/composer',
 		'apps/testing/tests',
 		'apps/theming/composer',
+		'apps/theming/templates/',
 		'apps/theming/tests',
 		'apps/twofactor_backupcodes/composer',
+		'apps/twofactor_backupcodes/templates/',
 		'apps/twofactor_backupcodes/tests',
 		'apps/updatenotification/composer',
+		'apps/updatenotification/templates/',
 		'apps/updatenotification/tests',
 		'apps/user_ldap/composer',
+		'apps/user_ldap/templates/',
 		'apps/user_ldap/tests',
 		'apps/workflowengine/composer',
+		'apps/workflowengine/templates/',
 		'apps/workflowengine/tests',
+		'build/.phan/',
+		'core/templates',
+		'lib/composer',
+		'settings/templates',
 	],
+
+	// A file list that defines files that will be excluded
+	// from parsing and analysis and will not be read at all.
+	//
+	// This is useful for excluding hopelessly unanalyzable
+	// files that can't be removed for whatever reason.
+	'exclude_file_list' => [
+		'settings/routes.php',
+		'settings/ajax/updateapp.php',
+		'settings/ajax/uninstallapp.php',
+		'settings/ajax/togglesubadmins.php',
+		'settings/ajax/setquota.php',
+		'settings/ajax/navigationdetect.php',
+		'settings/ajax/enableapp.php',
+		'settings/ajax/disableapp.php',
+		'core/register_command.php',
+		'apps/testing/appinfo/routes.php',
+		'ocs/routes.php',
+		'ocs/v1.php',
+		'core/routes.php',
+	],
+
 
 	// The number of processes to fork off during the analysis
 	// phase.
@@ -99,7 +146,7 @@ return [
 	// it before upgrading your version of PHP to a
 	// new version that has backward compatibility
 	// breaks.
-	'backward_compatibility_checks' => false,
+	'backward_compatibility_checks' => true,
 
 	// Run a quick version of checks that takes less
 	// time at the cost of not running as thorough
@@ -107,6 +154,34 @@ return [
 	// to true only when you wish you had more issues
 	// to fix in your code base.
 	'quick_mode' => false,
+
+	// If true, check to make sure the return type declared
+	// in the doc-block (if any) matches the return type
+	// declared in the method signature. This process is
+	// slow.
+	'check_docblock_signature_return_type_match' => true,
+
+	// If true, check to make sure the return type declared
+	// in the doc-block (if any) matches the return type
+	// declared in the method signature. This process is
+	// slow.
+	'check_docblock_signature_param_type_match' => true,
+
+	// (*Requires check_docblock_signature_param_type_match to be true*)
+	// If true, make narrowed types from phpdoc params override
+	// the real types from the signature, when real types exist.
+	// (E.g. allows specifying desired lists of subclasses,
+	//  or to indicate a preference for non-nullable types over nullable types)
+	// Affects analysis of the body of the method and the param types passed in by callers.
+	'prefer_narrowed_phpdoc_param_type' => true,
+
+	// (*Requires check_docblock_signature_return_type_match to be true*)
+	// If true, make narrowed types from phpdoc returns override
+	// the real types from the signature, when real types exist.
+	// (E.g. allows specifying desired lists of subclasses,
+	//  or to indicate a preference for non-nullable types over nullable types)
+	// Affects analysis of return statements in the body of the method and the return types passed in by callers.
+	'prefer_narrowed_phpdoc_return_type' => true,
 
 	// If enabled, check all methods that override a
 	// parent method to make sure its signature is
@@ -119,7 +194,7 @@ return [
 	// Issue::SEVERITY_CRITICAL. Setting it to only
 	// critical issues is a good place to start on a big
 	// sloppy mature code base.
-	'minimum_severity' => \Phan\Issue::SEVERITY_CRITICAL,
+	'minimum_severity' => \Phan\Issue::SEVERITY_NORMAL,
 
 	// If true, missing properties will be created when
 	// they are first seen. If false, we'll report an
@@ -145,7 +220,7 @@ return [
 
 	// If enabled, scalars (int, float, bool, true, false, string, null)
 	// are treated as if they can cast to each other.
-	'scalar_implicit_cast' => true,
+	'scalar_implicit_cast' => false,
 
 	// If this has entries, scalars (int, float, bool, true, false, string, null)
 	// are allowed to perform the casts listed.
@@ -159,7 +234,7 @@ return [
 	// scope will be ignored. This is useful for projects
 	// with complicated cross-file globals that you have no
 	// hope of fixing.
-	'ignore_undeclared_variables_in_global_scope' => true,
+	'ignore_undeclared_variables_in_global_scope' => false,
 
 	// Add any issue types (such as 'PhanUndeclaredMethod')
 	// to this black-list to inhibit them from being reported.
