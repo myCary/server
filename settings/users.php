@@ -17,6 +17,7 @@
  * @author Stephan Peijnik <speijnik@anexia-it.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Pulzer <t.pulzer@kniel.de>
+ * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
  *
  * @license AGPL-3.0
  *
@@ -30,7 +31,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -109,7 +110,7 @@ if($isAdmin) {
 $disabledUsers = $isLDAPUsed ? 0 : $userManager->countDisabledUsers();
 $disabledUsersGroup = [
 	'id' => '_disabledUsers',
-	'name' => '_disabledUsers',
+	'name' => 'Disabled users',
 	'usercount' => $disabledUsers
 ];
 
@@ -127,23 +128,25 @@ $defaultQuotaIsUserDefined=array_search($defaultQuota, $quotaPreset)===false
 
 \OC::$server->getEventDispatcher()->dispatch('OC\Settings\Users::loadAdditionalScripts');
 
-$tmpl = new OC_Template("settings", "users/main", "user");
-$tmpl->assign('groups', $groups);
-$tmpl->assign('sortGroups', $sortGroupsBy);
-$tmpl->assign('adminGroup', $adminGroup);
-$tmpl->assign('disabledUsersGroup', $disabledUsersGroup);
-$tmpl->assign('isAdmin', (int)$isAdmin);
-$tmpl->assign('subadmins', $subAdmins);
-$tmpl->assign('numofgroups', count($groups) + count($adminGroup));
-$tmpl->assign('quota_preset', $quotaPreset);
-$tmpl->assign('default_quota', $defaultQuota);
-$tmpl->assign('defaultQuotaIsUserDefined', $defaultQuotaIsUserDefined);
-$tmpl->assign('recoveryAdminEnabled', $recoveryAdminEnabled);
+$allGroups = array_merge_recursive($adminGroup, $groups);
 
-$tmpl->assign('show_storage_location', $config->getAppValue('core', 'umgmt_show_storage_location', 'false'));
-$tmpl->assign('show_last_login', $config->getAppValue('core', 'umgmt_show_last_login', 'false'));
-$tmpl->assign('show_email', $config->getAppValue('core', 'umgmt_show_email', 'false'));
-$tmpl->assign('show_backend', $config->getAppValue('core', 'umgmt_show_backend', 'false'));
-$tmpl->assign('send_email', $config->getAppValue('core', 'umgmt_send_email', 'false'));
+$serverData = array();
+// groups
+$serverData['groups'] = array_merge_recursive($adminGroup, [$disabledUsersGroup], $groups);
+$serverData['adminGroup'] = $adminGroup;
+$serverData['subadmingroups'] = $groups;
+$serverData['disabledUsersGroup'] = $disabledUsersGroup;
+// Various data
+$serverData['isAdmin'] = (int)$isAdmin;
+$serverData['subadmins'] = $subAdmins;
+$serverData['sortGroups'] = $sortGroupsBy;
+$serverData['quotaPreset'] = $quotaPreset;
+$serverData['userCount'] = count($groups) + count($adminGroup);
+// Settings
+$serverData['defaultQuota'] = $defaultQuota;
+$serverData['defaultQuotaIsUserDefined'] = $defaultQuotaIsUserDefined;
 
+// print template + vue + serve data
+$tmpl = new OC_Template('settings', 'settings', 'user');
+$tmpl->assign('serverData', $serverData);
 $tmpl->printPage();
