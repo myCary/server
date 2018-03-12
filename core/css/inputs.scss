@@ -247,6 +247,7 @@ input {
 			+ .icon-confirm {
 				border-color: $color-primary-element !important;
 				border-left-color: transparent !important;
+				z-index: 2; /* above previous input */
 			}
 		}
 	}
