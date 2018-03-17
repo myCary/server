@@ -1,42 +1,51 @@
 <template>
 	<div class="row">
-		<div class="avatar"><img alt="" width="32" height="32" :src="generateAvatar(user.name, 32)" :srcset="generateAvatar(user.name, 64)+' 2x, '+generateAvatar(user.name, 128)+' 4x'"></div>
-		<div class="name">{{user.name}}</div>
-		<div class="displayName">
-			<input :id="'displayName'+user.name+rand" type="text" :value="user.displayname" @input="updateDisplayName($event.target.value)"
+		<div class="avatar"><img alt="" width="32" height="32" :src="generateAvatar(user.id, 32)" :srcset="generateAvatar(user.id, 64)+' 2x, '+generateAvatar(user.id, 128)+' 4x'"></div>
+		<div class="name">{{user.id}}</div>
+		<form class="displayName" :class="{'icon-loading-small': loading.displayName}" v-on:submit.prevent="updateDisplayName">
+			<input :id="'displayName'+user.id+rand" type="text"
+					:disabled="loading.displayName||loading.all"
+					:value="user.displayname" ref="displayName"
 					autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
 			<input type="submit" class="icon-confirm" value="" />
-		</div>
-		<div class="password">
-			<input :id="'password'+user.name+rand" type="password" placeholder="●●●●●●●●●●" value=""
+		</form>
+		<form class="password" v-if="settings.canChangePassword" :class="{'icon-loading-small': loading.password}"
+			  v-on:submit.prevent="updatePassword">
+			<input :id="'password'+user.id+rand" type="password" required
+					:disabled="loading.password||loading.all" :minlength="minPasswordLength"
+					value="" :placeholder="t('settings', 'New password')" ref="password"
 					autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
 			<input type="submit" class="icon-confirm" value="" />
-		</div>
-		<div class="mailAddress">
-			<input :id="'mailAddress'+user.name+rand" type="text" :value="user.email" @input="updateEmail($event.target.value)"
+		</form>
+		<div v-else></div>
+		<form class="mailAddress" :class="{'icon-loading-small': loading.mailAddress}" v-on:submit.prevent="updateEmail">
+			<input :id="'mailAddress'+user.id+rand" type="email"
+					:disabled="loading.mailAddress||loading.all"
+					:value="user.email" ref="mailAddress"
 					autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
 			<input type="submit" class="icon-confirm" value="" />
-		</div>
-		<div class="groups">
-			<multiselect :value="userGroups" :options="groups"
+		</form>
+		<div class="groups" :class="{'icon-loading-small': loading.groups}">
+			<multiselect :value="userGroups" :options="groups" :disabled="loading.groups||loading.all"
 						 tag-placeholder="create" :placeholder="t('settings', 'Add user in group')"
 						 label="name" track-by="id" class="multiselect-vue"
-						 :multiple="true" :taggable="true" :close-on-select="false"
-						 @tag="createGroup" @input="setUserGroups">
+						 :limit="2" :limitText="limitGroups"
+						 :multiple="true" :taggable="true" :closeOnSelect="false"
+						 @tag="createGroup" @select="addUserGroup" @remove="removeUserGroup">
 			</multiselect>
 		</div>
-		<div class="subadmins" v-if="subAdminsGroups.length>0">
-			<multiselect :value="userSubAdminsGroups" :options="subAdminsGroups"
+		<div class="subadmins" v-if="subAdminsGroups.length>0" :class="{'icon-loading-small': loading.subadmins}">
+			<multiselect :value="userSubAdminsGroups" :options="subAdminsGroups" :disabled="loading.subadmins||loading.all"
 						 :placeholder="t('settings', 'Set user as admin for')"
 						 label="name" track-by="id" class="multiselect-vue"
-						 :multiple="true" :close-on-select="false"
-						 @input="setUserSubAdminsGroups">
+						 :limit="2" :limitText="limitGroups"
+						 :multiple="true" :closeOnSelect="false"
+						 @select="addUserSubAdmin" @remove="removeUserSubAdmin">
 				<span slot="noResult">{{t('settings','No result')}}</span>
 			</multiselect>
 		</div>
-		<div v-if="settings.recoveryAdminEnabled" ></div>
-		<div class="quota">
-			<multiselect :value="userQuota" :options="quotaOptions"
+		<div class="quota" :class="{'icon-loading-small': loading.quota}">
+			<multiselect :value="userQuota" :options="quotaOptions" :disabled="loading.quota||loading.all"
 						 tag-placeholder="create" :placeholder="t('settings', 'Select user quota')"
 						 label="label" track-by="id" class="multiselect-vue"
 						 :allowEmpty="false" :taggable="true"
@@ -44,14 +53,16 @@
 			</multiselect>
 			<progress class="quota-user-progress" :class="{'warn':usedQuota>80}" :value="usedQuota" max="100"></progress>
 		</div>
-		<div class="storageLocation">{{user.storageLocation}}</div>
-		<div class="userBackend">{{user.backend}}</div>
-		<div class="lastLogin">{{user.lastLogin>0 ? OC.Util.relativeModifiedDate(user.lastLogin) : t('settings','Never')}}</div>
+		<div class="storageLocation" v-if="showConfig.showStoragePath">{{user.storageLocation}}</div>
+		<div class="userBackend" v-if="showConfig.showUserBackend">{{user.backend}}</div>
+		<div class="lastLogin" v-if="showConfig.showLastLogin" :title="user.lastLogin>0 ? OC.Util.formatDate(user.lastLogin) : ''">
+			{{user.lastLogin>0 ? OC.Util.relativeModifiedDate(user.lastLogin) : t('settings','Never')}}
+		</div>
 		<div class="userActions">
-			<div class="toggleUserActions" v-if="OC.currentUser !== user.name && user.name !== 'admin'">
+			<div class="toggleUserActions" v-if="OC.currentUser !== user.id && user.id !== 'admin'">
 				<div class="icon-more" v-click-outside="hideMenu" @click="showMenu"></div>
 				<div class="popovermenu" :class="{ 'open': openedMenu }">
-					<popover-menu :menu="userActions"/>
+					<popover-menu :menu="userActions" />
 				</div>
 			</div>
 		</div>
@@ -62,11 +73,11 @@
 import popoverMenu from '../popoverMenu';
 import ClickOutside from 'vue-click-outside';
 import Multiselect from 'vue-multiselect';
-import _ from 'lodash';
+//import Multiselect from '../../../node_modules/vue-multiselect/src/index';
 
 export default {
 	name: 'userRow',
-	props: ['user', 'settings', 'groups', 'subAdminsGroups', 'quotaOptions'],
+	props: ['user', 'settings', 'groups', 'subAdminsGroups', 'quotaOptions', 'showConfig'],
 	components: {
 		popoverMenu,
 		Multiselect
@@ -81,7 +92,16 @@ export default {
 	data() {
 		return {
 			rand: parseInt(Math.random() * 1000),
-			openedMenu: false
+			openedMenu: false,
+			loading: {
+				all: false,
+				displayName: false,
+				password: false,
+				mailAddress: false,
+				groups: false,
+				subadmins: false,
+				quota: false
+			}
 		}
 	},
 	computed: {
@@ -91,32 +111,32 @@ export default {
 				icon: 'icon-delete',
 				text: t('settings','Delete user'),
 				action: 'deleteUser',
-				data: this.user.name
+				data: this.user.id
 			},{
-				'icon': this.user.isEnabled ? 'icon-close' : 'icon-add',
-				'text': this.user.isEnabled ? t('settings','Disable user') : t('settings','Enable user'),
+				'icon': this.user.enabled ? 'icon-close' : 'icon-add',
+				'text': this.user.enabled ? t('settings','Disable user') : t('settings','Enable user'),
 				'action': 'enableDisableUser',
-				data: {name: this.user.name, enabled: !this.user.isEnabled}
+				data: {userid: this.user.id, enabled: !this.user.enabled}
 			}]
 		},
 
 		/* GROUPS MANAGEMENT */
 		userGroups() {
-			let userGroups = this.groups.filter(group => Object.keys(this.user.groups).includes(group.id));
+			let userGroups = this.groups.filter(group => this.user.groups.includes(group.id));
 			return userGroups;
 		},
 		userSubAdminsGroups() {
-			let userSubAdminsGroups = this.subAdminsGroups.filter(group => Object.keys(this.user.subadmin).includes(group.id));
+			let userSubAdminsGroups = this.subAdminsGroups.filter(group => this.user.subadmin.includes(group.id));
 			return userSubAdminsGroups;
 		},
 
 		/* QUOTA MANAGEMENT */
 		usedQuota() {
-			let quota = OC.Util.computerFileSize(this.user.quota);
+			let quota = this.user.quota.quota;
 			if (quota > 0) {
-				quota = Math.min(100, Math.round(this.user.size / quota * 100));
+				quota = Math.min(100, Math.round(this.user.quota.used / quota * 100));
 			} else {
-				var usedInGB = this.user.size / (10 * Math.pow(2, 30));
+				var usedInGB = this.user.quota.used / (10 * Math.pow(2, 30));
 				//asymptotic curve approaching 50% at 10GB to visualize used stace with infinite quota
 				quota = 95 * (1 - (1 / (usedInGB + 1)));
 			}
@@ -124,13 +144,22 @@ export default {
 		},
 		// Mapping saved values to objects
 		userQuota() {
-			if (OC.Util.computerFileSize(this.user.quota) === null) {
-				return this.quotaOptions[0]; // illimited by default
+			if (this.user.quota.quota > 0) {
+				// if value is valid, let's map the quotaOptions or return custom quota
+				let humanQuota = OC.Util.humanFileSize(this.user.quota.quota);
+				let userQuota = this.quotaOptions.find(quota => quota.id === humanQuota);
+				return userQuota ? userQuota : {id:humanQuota, label:humanQuota};
+			} else if (this.user.quota.quota === 0 || this.user.quota.quota === 'default') {
+				// default quota is replaced by the proper value on load
+				return this.quotaOptions[0];
 			}
-			// if value is valid, let's map the quotaOptions or return custom quota
-			let userQuota = this.quotaOptions.find(quota => quota.id === this.user.quota);
-			return userQuota ? userQuota : {id:this.user.quota, label:this.user.quota}; // unlimited
+			return this.quotaOptions[1]; // unlimited
 		},
+
+		/* PASSWORD POLICY? */
+		minPasswordLength() {
+			return this.$store.getters.getPasswordPolicyMinLength;
+		}
 	},
 	methods: {
 		/* MENU HANDLING */
@@ -159,19 +188,54 @@ export default {
 			);
 		},
 
+
+		/**
+		 * Format the limit text in the selected options
+		 * 
+		 * @param {int} count elements left
+		 * @returns {string}
+		 */
+		limitGroups(count) {
+			return '+'+count;
+		},
+
 		/**
 		 * Set user displayName
 		 * 
 		 * @param {string} displayName The display name
 		 * @returns {Promise}
 		 */
-		updateDisplayName: _.debounce(function(displayName) {
+		updateDisplayName() {
+			let displayName = this.$refs.displayName.value;
+			this.loading.displayName = true;
 			this.$store.dispatch('setUserData', {
-				name: this.user.name, 
-				key:'displayname',
+				userid: this.user.id, 
+				key: 'displayname',
 				value: displayName
-			})
-		}, 500),
+			}).then(() => {
+				this.loading.displayName = false;
+				this.$refs.displayName.value = displayName;
+			});
+		},
+
+		/**
+		 * Set user password
+		 * 
+		 * @param {string} password The email adress
+		 * @returns {Promise}
+		 */
+		updatePassword() {
+			let password = this.$refs.password.value;
+			this.loading.password = true;
+			this.$store.dispatch('setUserData', {
+				userid: this.user.id,
+				key: 'password',
+				value: password
+			}).then(() => {
+				this.loading.password = false;
+				this.$refs.password.value = ''; // empty & show placeholder 
+			});
+		},
 
 		/**
 		 * Set user mailAddress
@@ -179,13 +243,18 @@ export default {
 		 * @param {string} mailAddress The email adress
 		 * @returns {Promise}
 		 */
-		updateEmail: _.debounce(function(mailAddress) {
+		updateEmail() {
+			let mailAddress = this.$refs.mailAddress.value;
+			this.loading.mailAddress = true;
 			this.$store.dispatch('setUserData', {
-				name: this.user.name,
-				key:'email',
+				userid: this.user.id,
+				key: 'email',
 				value: mailAddress
-			})
-		}, 500),
+			}).then(() => {
+				this.loading.mailAddress = false;
+				this.$refs.mailAddress.value = mailAddress;
+			});
+		},
 
 		/**
 		 * Create a new group
@@ -194,39 +263,71 @@ export default {
 		 * @returns {Promise}
 		 */
 		createGroup(gid) {
-			this.$store.commit('createGroup', gid);
+			this.loading = {groups:true, subadmins:true}
+			this.$store.dispatch('addGroup', gid).then(() => {
+				this.loading = {groups:false, subadmins:false};
+				let userid = this.user.id;
+				this.$store.dispatch('addUserGroup', {userid, gid});
+			});
 			return this.$store.getters.getGroups[this.groups.length];
 		},
 
 		/**
-		 * Set user groups
+		 * Add user to group
 		 * 
-		 * @param {string[]} groups Array of groups ids as string
-		 * @returns {Promise|boolean}
+		 * @param {object} group Group object
+		 * @returns {Promise}
 		 */
-		setUserGroups(groups) {
-			if (Array.isArray(groups) && groups.length > 0) {
-				groups = groups.map(group => group.id); // convert objects into array
-				let name = this.user.name;
-				return this.$store.dispatch('setUserGroups', {name, groups});
-			}
-			return false;
+		addUserGroup(group) {
+			this.loading.groups = true;
+			let userid = this.user.id;
+			let gid = group.id;
+			return this.$store.dispatch('addUserGroup', {userid, gid})
+					.then(() => this.loading.groups = false);
 		},
 
 		/**
-		 * Set user as admin of groups
+		 * Remove user from group
 		 * 
-		 * @param {string[]} groups Array of groups ids as string
-		 * @returns {Promise|boolean}
+		 * @param {object} group Group object
+		 * @returns {Promise}
 		 */
-		setUserSubAdminsGroups(groups) {
-			if (Array.isArray(groups) && groups.length > 0) {
-				groups = groups.map(group => group.id); // convert objects into array
-				let name = this.user.name;
-				return this.$store.dispatch('setUserSubAdmins', {name, groups});
-			}
-			return false;
+		removeUserGroup(group) {
+			this.loading.groups = true;
+			let userid = this.user.id;
+			let gid = group.id;
+			return this.$store.dispatch('removeUserGroup', {userid, gid})
+					.then(() => this.loading.groups = false);
 		},
+
+		/**
+		 * Add user to group
+		 * 
+		 * @param {object} group Group object
+		 * @returns {Promise}
+		 */
+		addUserSubAdmin(group) {
+			this.loading.subadmins = true;
+			let userid = this.user.id;
+			let gid = group.id;
+			return this.$store.dispatch('addUserSubAdmin', {userid, gid})
+					.then(() => this.loading.subadmins = false);
+		},
+
+		/**
+		 * Remove user from group
+		 * 
+		 * @param {object} group Group object
+		 * @returns {Promise}
+		 */
+		removeUserSubAdmin(group) {
+			this.loading.subadmins = true;
+			let userid = this.user.id;
+			let gid = group.id;
+			return this.$store.dispatch('removeUserSubAdmin', {userid, gid})
+					.then(() => this.loading.subadmins = false);
+		},
+
 
 		/**
 		 * Validate quota string to make sure it's a valid human file size
@@ -235,14 +336,14 @@ export default {
 		 * @returns {string}
 		 */
 		setUserQuota(quota = 'none') {
-			let name = this.user.name;
+			this.loading.quota = true;
 			// ensure we only send the preset id
 			quota = quota.id ? quota.id : quota;
 			this.$store.dispatch('setUserData', {
-				name: this.user.name, 
+				userid: this.user.id, 
 				key: 'quota',
 				value: quota
-			})
+			}).then(() => this.loading.quota = false);
 			return quota;
 		},
 

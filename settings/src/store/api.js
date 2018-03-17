@@ -42,8 +42,8 @@ export default {
             .then((response) => Promise.resolve(response))
             .catch((error) => Promise.reject(error));
     },
-    delete(url) {
-        return axios.delete(sanitize(url), tokenHeaders)
+    delete(url, data) {
+        return axios.delete(sanitize(url), { data: data, headers: tokenHeaders.headers })
             .then((response) => Promise.resolve(response))
             .catch((error) => Promise.reject(error));
     }

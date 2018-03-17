@@ -1,5 +1,5 @@
 <template>
-	<li :class="[{'icon-loading-small': item.loading, 'open': item.opened, 'collapsible': item.collapsible&&item.children&&item.children.length>0 }, item.classes]">
+	<li :id="item.id" :class="[{'icon-loading-small': item.loading, 'open': item.opened, 'collapsible': item.collapsible&&item.children&&item.children.length>0 }, item.classes]">
 
 		<!-- Bullet -->
 		<div v-if="item.bullet" class="app-navigation-entry-bullet" :style="{ backgroundColor: item.bullet }"></div>

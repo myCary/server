@@ -82,6 +82,13 @@ div[contenteditable=true],
         cursor: default;
         opacity: 0.5;
     }
+    &:required {
+        box-shadow: none;
+    }
+    &:invalid {
+        box-shadow: none !important;
+        border-color: $color-error;
+    }
     /* Primary action button, use sparingly */
     &.primary {
         background-color: $color-primary-element;
@@ -122,7 +129,6 @@ div[contenteditable=false] {
 
 
 /* Specific override */
-
 input {
     &:not([type='radio']):not([type='checkbox']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']):not([type='color']):not([type='file']):not([type='image']) {
         -webkit-appearance: textfield;
@@ -257,6 +263,7 @@ input {
                 background-image: url('../img/actions/confirm-fade.svg?v=2') !important;
             }
         }
+
         /* only show confirm borders if input is not focused */
         &:not(:active):not(:hover):not(:focus) {
             +.icon-confirm {
@@ -274,7 +281,12 @@ input {
         &:active,
         &:hover,
         &:focus {
-            +.icon-confirm {
+            &:invalid {
+                + .icon-confirm {
+                    border-color: $color-error;
+                }
+            }
+            + .icon-confirm {
                 border-color: $color-primary-element !important;
                 border-left-color: transparent !important;
                 z-index: 2;
@@ -695,7 +707,6 @@ input {
 
 
 /* Vue multiselect */
-
 .multiselect.multiselect-vue {
     margin: 1px 2px;
     padding: 0 !important;
@@ -705,9 +716,13 @@ input {
     position: relative;
     background-color: $color-main-background;
     &.multiselect--active {
+        /* Opened: force display the input */
         input.multiselect__input {
             opacity: 1 !important;
         }
+    }
+    &.multiselect--disabled {
+        background-color: nc-darken($color-main-background, 8%);
     }
     .multiselect__tags {
         display: flex;
@@ -718,6 +733,7 @@ input {
         position: relative;
         border-radius: 3px;
         height: 38px;
+        /* tag wrapper */
         .multiselect__tags-wrap {
             align-items: center;
             display: inline-flex;
@@ -725,6 +741,16 @@ input {
             max-width: 100%;
             position: relative;
             padding: 3px 5px;
+            /* no tags or simple select? Show input directly
+			   input is used to display single value */
+            &:empty ~ input.multiselect__input {
+                opacity: 1 !important;
+                /* hide default empty text, show input instead */
+                + span:not(.multiselect__single) {
+                    display: none;
+                }
+            }
+            /* selected tag */
             .multiselect__tag {
                 flex: 0 0 auto;
                 line-height: 20px;
@@ -737,12 +763,25 @@ input {
                 border-radius: 3px;
                 margin-right: 5px;
             }
-            /* no tags or simple select? Show input directly
-			   input is used to display single value */
-            &:empty~input.multiselect__input {
-                opacity: 1 !important;
-            }
         }
+        /* Single select default value */
+        .multiselect__single {
+            padding: 8px 10px;
+            flex: 0 0 100%;
+            z-index: 5;
+            background-color: $color-main-background;
+            cursor: pointer;
+        }
+        /* displayed text if tag limit reached */
+        .multiselect__strong {
+            flex: 0 0 auto;
+            line-height: 20px;
+            color: nc-lighten($color-main-text, 33%);
+            display: inline-flex;
+            align-items: center;
+	        opacity: .7;
+        }
+        /* default multiselect input for search and placeholder */
         input.multiselect__input {
             width: 100% !important;
             position: absolute !important;
@@ -751,8 +790,11 @@ input {
             /* let's leave it on top of tags but hide it */
             height: 100%;
             border: none;
+            /* override hide to force show the placeholder */
+            display: block !important;
         }
     }
+    /* results wrapper */
     .multiselect__content-wrapper {
         position: absolute;
         width: 100%;
@@ -774,7 +816,7 @@ input {
             span {
                 cursor: pointer;
             }
-            >span {
+            > span {
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -791,6 +833,7 @@ input {
                 background-color: transparent !important;
                 color: nc-lighten($color-main-text, 33%);
                 width: 100%;
+                /* selected checkmark icon */
                 &::before {
                     content: ' ';
                     background-image: url('../img/actions/checkmark.svg?v=1');
@@ -804,7 +847,7 @@ input {
                     visibility: hidden;
                 }
                 /* add the prop tag-placeholder="create" to add the +
-				 * icon on top of an unknown and ready-to-be-created entry
+				 * icon on top of an unknown-and-ready-to-be-created entry
 				 */
                 &[data-select='create'] {
                     &::before {
